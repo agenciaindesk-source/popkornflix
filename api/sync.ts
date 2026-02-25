@@ -2,26 +2,20 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Tu URL de conexión que vimos en las capturas
-  const dbUrl = "postgresql://neondb_owner:npg_DLKwfAhoVT87@ep-dark-frog-ac5mg8rp-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require";
+  // Conexión directa extraída de tus ajustes
+  const sql = neon("postgresql://neondb_owner:npg_DLKwfAhoVT87@ep-dark-frog-ac5mg8rp-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require");
 
   try {
-    const sql = neon(dbUrl);
-    
-    // 1. Buscamos tendencias en la API
+    // 1. Forzamos la obtención de tendencias de la API
     const response = await fetch('https://api.netmirrror.link/trending');
     const data = await response.json();
     const items = data.results || data;
 
-    if (!items || items.length === 0) {
-      return res.status(200).send("No se encontraron películas en la API.");
-    }
-
-    // 2. Limpiamos y guardamos en Neon
+    // 2. Insertamos masivamente en tu tabla 'content'
     for (const item of items) {
-      const title = item.title || item.name || 'Sin título';
+      const title = item.title || item.name || 'Película';
       const slug = title.toLowerCase().replace(/[^\w ]+/g, '').replace(/ +/g, '-');
-      const poster = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : '';
+      const poster = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : 'https://via.placeholder.com/500x750';
 
       await sql`
         INSERT INTO content (id, slug, title, type, poster_url)
@@ -30,8 +24,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `;
     }
 
-    return res.status(200).send("¡ÉXITO! Base de datos llenada. Refresca la web ahora.");
+    return res.status(200).send("<h1>EXITO: Datos cargados correctamente. Refresca la web principal.</h1>");
   } catch (error: any) {
-    return res.status(500).send("Error: " + error.message);
+    return res.status(500).send("Error crítico: " + error.message);
   }
 }
