@@ -1,4 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+// Usamos rutas relativas directas para saltar cualquier error de configuración
 import { PopkornScraper } from '../src/lib/scraper/core';
 import { db } from '../src/db';
 import { content } from '../src/db/schema';
@@ -9,7 +10,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const items = await scraper.getLatestContent();
     
     if (!items || items.length === 0) {
-      return res.status(200).json({ success: true, message: "No se encontraron películas nuevas." });
+      return res.status(200).json({ success: true, message: "Sin pelis nuevas." });
     }
 
     for (const item of items) {
@@ -22,16 +23,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }).onConflictDoNothing();
     }
 
-    return res.status(200).json({ 
-      success: true, 
-      added: items.length,
-      message: "Sincronización exitosa con Neon" 
-    });
+    return res.status(200).json({ success: true, count: items.length });
   } catch (error: any) {
+    // Esto nos dirá el error real en pantalla, no más "Error 500" genérico
     return res.status(500).json({ 
-      success: false, 
-      error: error.message,
-      hint: "Asegúrate de que DATABASE_URL esté en Environment Variables de Vercel" 
+      error: error.message, 
+      stack: error.stack,
+      path: "__dirname: " + __dirname 
     });
   }
 }
