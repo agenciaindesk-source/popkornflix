@@ -1,6 +1,7 @@
 {
+  "framework": "vite",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/src/server.ts" },
+    { "source": "/api/cron/sync", "destination": "/api/cron/sync/route.ts" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
