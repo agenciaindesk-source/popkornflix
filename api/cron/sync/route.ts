@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
-import { PopkornScraper } from '@/lib/scraper/core';
-import { db } from '@/db';
-import { content } from '@/db/schema';
+// Cambiamos @/ por la ruta real hacia la carpeta src
+import { PopkornScraper } from '../../../src/lib/scraper/core';
+import { db } from '../../../src/db';
+import { content } from '../../../src/db/schema';
+
+export const dynamic = 'force-dynamic'; 
 
 export async function GET(req: Request) {
   try {
@@ -18,8 +21,8 @@ export async function GET(req: Request) {
       }).onConflictDoNothing();
     }
 
-    return NextResponse.json({ message: "Sincronización Exitosa", count: items.length });
-  } catch (error) {
-    return NextResponse.json({ error: "Error en el scraper" }, { status: 500 });
+    return NextResponse.json({ success: true, count: items.length });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
