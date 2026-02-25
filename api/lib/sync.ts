@@ -1,66 +1,28 @@
-import * as cheerio from 'cheerio';
+import { VercelRequest, VercelResponse } from '@vercel/node';
+import { PopkornScraper } from './lib/core'; // Ruta directa dentro de api
+import { neon } from '@neondatabase/serverless';
 
-export interface ScrapedContent {
-  title: string;
-  slug: string;
-  type: 'movie' | 'series';
-  posterUrl: string;
-  year?: number;
-  description?: string;
-}
-
-export class PopkornScraper {
-  private baseUrl = 'https://net52.cc';
-
-  async fetchLatest(): Promise<ScrapedContent[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/latest`);
-      const html = await response.text();
-      const $ = cheerio.load(html);
-      const results: ScrapedContent[] = [];
-
-      $('.movie-item').each((_, el) => {
-        const title = $(el).find('.title').text().trim();
-        const href = $(el).find('a').attr('href') || '';
-        const slug = href.split('/').pop() || '';
-        const posterUrl = $(el).find('img').attr('src') || '';
-        const type = href.includes('/series/') ? 'series' : 'movie';
-
-        if (title && slug) {
-          results.push({ title, slug, type, posterUrl });
-        }
-      });
-
-      return results;
-    } catch (error) {
-      console.error('Scraping error:', error);
-      return [];
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  try {
+    const sql = neon(process.env.DATABASE_URL!);
+    const scraper = new PopkornScraper();
+    const items = await scraper.getLatestContent();
+    
+    if (!items || items.length === 0) {
+      return res.status(200).json({ success: true, message: "No se encontraron pelis" });
     }
-  }
 
-  async fetchDetails(slug: string, type: 'movie' | 'series') {
-    try {
-      const response = await fetch(`${this.baseUrl}/${type}/${slug}`);
-      const html = await response.text();
-      const $ = cheerio.load(html);
-
-      const title = $('.content-title').text().trim();
-      const description = $('.content-description').text().trim();
-      const posterUrl = $('.content-poster img').attr('src') || '';
-      
-      // Mocking for now as the actual site structure might vary
-      // In a real scenario, we would parse seasons and episodes here
-      
-      return {
-        title,
-        description,
-        posterUrl,
-        slug,
-        type
-      };
-    } catch (error) {
-      console.error(`Error fetching details for ${slug}:`, error);
-      return null;
+    for (const item of items) {
+      // Usamos los nombres de columna exactos de tu tabla en Neon (image_b2f745.png)
+      await sql`
+        INSERT INTO content (id, slug, title, type, poster_url)
+        VALUES (${item.externalId}, ${item.title.toLowerCase().replace(/\s+/g, '-')}, ${item.title}, ${item.type}, ${item.posterUrl})
+        ON CONFLICT (id) DO NOTHING
+      `;
     }
+
+    return res.status(200).json({ success: true, count: items.length });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
   }
 }
