@@ -1,4 +1,6 @@
 {
+  "version": 2,
+  "framework": "vite",
   "rewrites": [
     { "source": "/api/cron/sync", "destination": "/api/sync.ts" },
     { "source": "/(.*)", "destination": "/index.html" }
