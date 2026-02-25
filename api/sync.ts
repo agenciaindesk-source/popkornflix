@@ -2,20 +2,18 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Conexión directa extraída de tus ajustes
+  // Conexión forzada directa
   const sql = neon("postgresql://neondb_owner:npg_DLKwfAhoVT87@ep-dark-frog-ac5mg8rp-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require");
 
   try {
-    // 1. Forzamos la obtención de tendencias de la API
     const response = await fetch('https://api.netmirrror.link/trending');
     const data = await response.json();
     const items = data.results || data;
 
-    // 2. Insertamos masivamente en tu tabla 'content'
     for (const item of items) {
-      const title = item.title || item.name || 'Película';
+      const title = item.title || item.name || 'Pelicula';
       const slug = title.toLowerCase().replace(/[^\w ]+/g, '').replace(/ +/g, '-');
-      const poster = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : 'https://via.placeholder.com/500x750';
+      const poster = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : '';
 
       await sql`
         INSERT INTO content (id, slug, title, type, poster_url)
@@ -23,9 +21,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ON CONFLICT (id) DO UPDATE SET poster_url = EXCLUDED.poster_url;
       `;
     }
-
-    return res.status(200).send("<h1>EXITO: Datos cargados correctamente. Refresca la web principal.</h1>");
-  } catch (error: any) {
-    return res.status(500).send("Error crítico: " + error.message);
+    return res.status(200).send("EXITO: Datos cargados.");
+  } catch (e: any) {
+    return res.status(500).send("Error: " + e.message);
   }
 }
