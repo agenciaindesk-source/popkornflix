@@ -2,16 +2,22 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Usamos tu URL de Neon directamente para asegurar la conexión
-  const sql = neon("postgresql://neondb_owner:npg_DLKwfAhoVT87@ep-dark-frog-ac5mg8rp-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require");
+  // Tu URL de conexión que vimos en las capturas
+  const dbUrl = "postgresql://neondb_owner:npg_DLKwfAhoVT87@ep-dark-frog-ac5mg8rp-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require";
 
   try {
-    // 1. Obtenemos datos de la API externa
+    const sql = neon(dbUrl);
+    
+    // 1. Buscamos tendencias en la API
     const response = await fetch('https://api.netmirrror.link/trending');
     const data = await response.json();
     const items = data.results || data;
 
-    // 2. Insertamos en tu tabla 'content'
+    if (!items || items.length === 0) {
+      return res.status(200).send("No se encontraron películas en la API.");
+    }
+
+    // 2. Limpiamos y guardamos en Neon
     for (const item of items) {
       const title = item.title || item.name || 'Sin título';
       const slug = title.toLowerCase().replace(/[^\w ]+/g, '').replace(/ +/g, '-');
@@ -24,8 +30,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `;
     }
 
-    return res.status(200).json({ success: true, message: "Base de datos sincronizada." });
+    return res.status(200).send("¡ÉXITO! Base de datos llenada. Refresca la web ahora.");
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).send("Error: " + error.message);
   }
 }
