@@ -8,6 +8,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const scraper = new PopkornScraper();
     const items = await scraper.getLatestContent();
     
+    // Insertamos las películas en la tabla que ya creaste
     for (const item of items) {
       await db.insert(content).values({
         title: item.title,
@@ -18,8 +19,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }).onConflictDoNothing();
     }
 
-    return res.status(200).json({ success: true, added: items.length });
+    return res.status(200).json({ 
+      success: true, 
+      message: "¡Películas enviadas a Neon!", 
+      count: items.length 
+    });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    // Esto nos dirá exactamente qué falló en el link
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      detail: "Revisa si DATABASE_URL está configurada en Vercel"
+    });
   }
 }
