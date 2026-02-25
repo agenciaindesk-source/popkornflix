@@ -1,6 +1,6 @@
-import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, timestamp, uuid } from "drizzle-orm/pg-core";
 
-export const content = sqliteTable("content", {
+export const content = pgTable("content", {
   id: text("id").primaryKey(),
   slug: text("slug").unique().notNull(),
   title: text("title").notNull(),
@@ -11,11 +11,11 @@ export const content = sqliteTable("content", {
   rating: text("rating"),
   year: integer("year"),
   genres: text("genres"), // JSON string array
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const episodes = sqliteTable("episodes", {
+export const episodes = pgTable("episodes", {
   id: text("id").primaryKey(),
   contentId: text("content_id").notNull().references(() => content.id, { onDelete: 'cascade' }),
   title: text("title").notNull(),
@@ -23,24 +23,24 @@ export const episodes = sqliteTable("episodes", {
   number: integer("number").notNull(),
   slug: text("slug").notNull(),
   thumbnailUrl: text("thumbnail_url"),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const sources = sqliteTable("sources", {
+export const sources = pgTable("sources", {
   id: text("id").primaryKey(),
   contentId: text("content_id").references(() => content.id, { onDelete: 'cascade' }),
   episodeId: text("episode_id").references(() => episodes.id, { onDelete: 'cascade' }),
   provider: text("provider").notNull(),
   url: text("url").notNull(),
   quality: text("quality"),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const watchHistory = sqliteTable("watch_history", {
+export const watchHistory = pgTable("watch_history", {
   id: text("id").primaryKey(),
   contentId: text("content_id").notNull().references(() => content.id, { onDelete: 'cascade' }),
   episodeId: text("episode_id").references(() => episodes.id, { onDelete: 'cascade' }),
   progress: integer("progress").notNull(), // in seconds
   duration: integer("duration").notNull(), // in seconds
-  lastWatched: integer("last_watched", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  lastWatched: timestamp("last_watched").defaultNow(),
 });
